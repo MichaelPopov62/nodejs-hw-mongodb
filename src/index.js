@@ -1,5 +1,5 @@
-// src/index.js
+/*імпортує функцію, яка створює і запускає сервер, і одразу виконує її, тобто після запуску файлу сервер починає працювати.*/
 
-const message = "Hello world";
+import { setupServer } from './server.js';
 
-console.log(message);
+setupServer();
