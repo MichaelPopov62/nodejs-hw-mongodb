@@ -60,18 +60,13 @@ export function setupServer() {
     }
   });
 
-  /* Додатковий рут для головної сторінки.Як інформативний. Коли користувач заходить https://nodejs-hw-mongodb-zpxp.onrender.com/, сервер повертає просте повідомлення.
+  /* Додатковий рут для головної сторінки. Коли користувач заходить https://nodejs-hw-mongodb-zpxp.onrender.com/, сервер повертає просте повідомлення.
 Це не стосується бази даних — просто інформативне повідомлення для того, хто відкрив головний URL.*/
-  app.all('/', (req, res) => {
+  app.get('/', (req, res) => {
     res.json({
       message:
         'Welcome to Node.js MongoDB API! Visit /contacts to see all contacts.',
     });
-  });
-
-  // Обробка HEAD-запитів для головного руту
-  app.head('/', (req, res) => {
-    res.status(200).end(); // Render бачить живий сервер
   });
 
   //Обробка неіснуючих роутів
