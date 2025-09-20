@@ -34,10 +34,9 @@ export function setupServer() {
     });
   });
 
-  //Обробка неіснуючих роутів
-  app.use((req, res) => {
-    res.status(404).json({ message: 'Not found' });
-  });
+  // Обробка помилок
+  app.use(notFoundHandler); // Middleware для неіснуючих маршрутів
+  app.use(errorHandler); // Централізована обробка помилок
 
   //Отримую порт з .env або 3000
   const PORT = process.env.PORT || 3000;

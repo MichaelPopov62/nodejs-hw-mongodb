@@ -4,5 +4,5 @@ notFoundHandler викликається, якщо жоден маршрут н�
 import createHttpError from 'http-errors'; //це функція з бібліотеки http-errors, яка використовується для створення HTTP-помилок із заданим статус-кодом і повідомленням.
 
 export function notFoundHandler(req, res, next) {
-  next(createHttpError(404, 'Contact not found'));
+  next(createHttpError(404, 'Route not found'));
 }
