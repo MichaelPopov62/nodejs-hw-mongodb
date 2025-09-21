@@ -2,9 +2,11 @@
 import createHttpError from 'http-errors';
 
 export const errorHandler = (err, req, res, next) => {
-  res.status(500).json({
-    status: 500, // статус 500
-    message: 'Something went wrong', // стандартне повідомлення беру з err.name
-    data: err.message, // конкретне повідомлення помилки беру з err.message
+  const status = err.status || 500;
+  const message = err.message || 'Something went wrong';
+  res.status(status).json({
+    status,
+    message,
+    data: null,
   });
 };

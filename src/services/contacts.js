@@ -17,7 +17,8 @@ export async function getContactById(contactId) {
 // Створює новий контакт
 export const createContact = async (payload) => {
   const contact = await Contact.create(payload);
-  return contact;
+  const { name, phoneNumber, email, isFavourite, contactType } = contact._doc;
+  return { name, phoneNumber, email, isFavourite, contactType };
 };
 
 // Оновлює дані існуючого контакту.
