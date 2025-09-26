@@ -1,4 +1,7 @@
-/*Це файл роутів для роботи з контактами у Node.js/Express застосунку. Його основне призначення — визначати URL-шляхи (маршрути) і зв'язувати їх з відповідними контролерами, які обробляють запити.*/
+/*Це файл роутів для роботи з контактами у Node.js/Express застосунку. Його основне призначення — визначати URL-шляхи (маршрути) і зв'язувати їх з відповідними контролерами, які обробляють запити.
+Використовується middleware для перевірки валідності ID (isValidId).
+Використовується Joi-схема для валідації тіла запиту (validateBody
+Контролери обгорнуті в ctrlWrapper, щоб автоматично обробляти помилки.*/
 
 import express from 'express'; //імпортую express
 import {
@@ -9,22 +12,37 @@ import {
   updateContactController,
 } from '../controllers/contacts.js';
 import { ctrlWrapper } from '../utils/ctrlWrapper.js';
+import { validateBody } from '../middlewares/validateBody.js';
+import {
+  createContactSchema,
+  updateContactSchema,
+} from '../validation/contacts.js'; // імпортую Joi-схеми
+import { isValidId } from '../middlewares/isValidId.js';
 
 const router = express.Router(); //створюю роутер
 
-// Реєстрація роута GET /contacts, який повертає всі контакти з бази даних
+// Реєструю роут GET /contacts, який повертає всі контакти з бази даних
 router.get('/', ctrlWrapper(getContactsController));
 
-// Реєстрація роута GET /contacts/:contactId, який повертає контакт по id
-router.get('/:contactId', ctrlWrapper(getContactByIdController));
+// додаю middleware isValidId для перевірки валідності ID перед викликом контролера getContactByIdController
+router.get('/:contactId', isValidId, ctrlWrapper(getContactByIdController));
 
-//Створення нового контакту
-router.post('/', ctrlWrapper(createContactController));
+// Додаю валідацію на створення контакту
+router.post(
+  '/',
+  validateBody(createContactSchema), // валідація тіла запиту за допомогою Joi-схеми
+  ctrlWrapper(createContactController), //обгортка контролера для обробки помилок
+);
 
-// для оновлення даних існуючого контакту.
-router.patch('/:contactId', ctrlWrapper(updateContactController));
+// додаю валідацію на оновлення контакту
+router.patch(
+  '/:contactId',
+  isValidId,
+  validateBody(updateContactSchema), // нова Joi-схема
+  ctrlWrapper(updateContactController),
+);
 
-//видалення контакту
-router.delete('/:contactId', ctrlWrapper(deleteContactController));
+//додаю валідацію на видалення контакту
+router.delete('/:contactId', isValidId, ctrlWrapper(deleteContactController));
 
 export default router;

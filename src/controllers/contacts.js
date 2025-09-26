@@ -1,5 +1,6 @@
-/*ЗАВДАННЯ коду-обробляти HTTP-запити, взаємодіяти із сервісним шаром (services/contacts.js) та формувати відповіді для клієнта.
-createHttpError для генерації HTTP-помилок та взаємодіє з сервісами, які містять логіку роботи з базою даних*/
+/*ЗАВДАННЯ коду-обробляти HTTP-запити,
+ Взаємодіяти із сервісом(services/contacts.js), де міститься логіка роботи з базою даних (MongoDB через Mongoose).
+ Формувати відповіді для клієнта у форматі JSON із статусом, повідомленням та даними.Обробляти помилки через createHttpError.*/
 
 import createHttpError from 'http-errors';
 import {
@@ -9,16 +10,43 @@ import {
   deleteContact,
   updateContact,
 } from '../services/contacts.js';
+import { parsePaginationParams } from '../utils/parsePaginationParams.js';
+import { calculatePaginationData } from '../utils/calculatePaginationData.js';
+import { parseSortParams } from '../utils/parseSortParams.js';
+import { parseFilterParams } from '../utils/parseFilterParams.js';
 
 // Отримую всі контакти
 export const getContactsController = async (req, res) => {
-  const contacts = await getAllContacts();
+  try {
+    const { page, perPage } = parsePaginationParams(req.query); // отримую параметри пагінаціі
+    const { sortBy, sortOrder } = parseSortParams(req.query); //отримую параметри сортування
+    const filter = parseFilterParams(
+      req.query,
+    ); /*функція  перетворює query-параметри type та isFavourite у об'єкт для MongoDB. ( filter.contactType = 'work') фільтрація по типу контакту
+    (filter.isFavourite = true/false )фільтрація по обраному контакту*/
+    console.log('Filter params:', filter);
 
-  res.status(200).json({
-    status: 200,
-    message: 'Successfully found contacts!',
-    data: contacts,
-  });
+    const result = await getAllContacts({
+      page,
+      perPage,
+      sortBy,
+      sortOrder,
+      filter,
+    });
+
+    res.status(200).json({
+      status: 200,
+      message: 'Successfully found contacts!',
+      data: result,
+    });
+  } catch (err) {
+    console.error(err); // лог помилки у консоль
+    res.status(500).json({
+      status: 500,
+      message: 'Internal server error',
+      data: null,
+    });
+  }
 };
 
 // Отримую контакт по id
@@ -38,34 +66,39 @@ export const getContactByIdController = async (req, res) => {
 };
 
 // Створюю новий контакт
-export const createContactController = async (req, res) => {
-  const {
-    name,
-    email,
-    phoneNumber,
-    isFavourite = false,
-    contactType,
-  } = req.body;
+export const createContactController = async (req, res, next) => {
+  try {
+    const {
+      name,
+      email,
+      phoneNumber,
+      isFavourite = false,
+      contactType,
+    } = req.body;
 
-  if (!name || !phoneNumber || !contactType) {
-    throw createHttpError(
-      400,
-      'Missing required fields: name, phoneNumber, contactType',
-    );
+    if (!name || !phoneNumber || !contactType) {
+      throw createHttpError(
+        400,
+        'Missing required fields: name, phoneNumber, contactType',
+      );
+    }
+    const newContact = await createContact({
+      name,
+      email,
+      phoneNumber,
+      isFavourite,
+      contactType,
+    });
+
+    res.status(201).json({
+      status: 201,
+      message: 'Successfully created a contact!',
+      data: newContact,
+    });
+  } catch (error) {
+    console.error('Create contact error:', error);
+    next(error); // передаємо помилку в errorHandler
   }
-  const newContact = await createContact({
-    name,
-    email,
-    phoneNumber,
-    isFavourite,
-    contactType,
-  });
-
-  res.status(201).json({
-    status: 201,
-    message: 'Successfully created a contact!',
-    data: newContact,
-  });
 };
 
 // оновлюю дані існуючого контакту.
