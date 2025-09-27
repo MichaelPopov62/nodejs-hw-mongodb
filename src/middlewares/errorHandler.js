@@ -7,6 +7,7 @@ export const errorHandler = (err, req, res, next) => {
   res.status(status).json({
     status,
     message,
+    errors: err.errors || null, //деталізація помилки від Joi
     data: null,
   });
 };
