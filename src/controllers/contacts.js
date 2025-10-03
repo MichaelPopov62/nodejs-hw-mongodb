@@ -11,27 +11,24 @@ import {
   updateContact,
 } from '../services/contacts.js';
 import { parsePaginationParams } from '../utils/parsePaginationParams.js';
-import { calculatePaginationData } from '../utils/calculatePaginationData.js';
 import { parseSortParams } from '../utils/parseSortParams.js';
 import { parseFilterParams } from '../utils/parseFilterParams.js';
 
 // Отримую всі контакти
-export const getContactsController = async (req, res) => {
+export const getContactsController = async (req, res, next) => {
   try {
-    const { page, perPage } = parsePaginationParams(req.query); // отримую параметри пагінаціі
-    const { sortBy, sortOrder } = parseSortParams(req.query); //отримую параметри сортування
-    const filter = parseFilterParams(
-      req.query,
-    ); /*функція  перетворює query-параметри type та isFavourite у об'єкт для MongoDB. ( filter.contactType = 'work') фільтрація по типу контакту
-    (filter.isFavourite = true/false )фільтрація по обраному контакту*/
-    console.log('Filter params:', filter);
+    const { page, perPage } = parsePaginationParams(req.query);
+    const { sortBy, sortOrder } = parseSortParams(req.query);
+    const filter = parseFilterParams(req.query);
 
+    // Отримую всі контакти з урахуванням пагінації
     const result = await getAllContacts({
       page,
       perPage,
       sortBy,
       sortOrder,
       filter,
+      userId: req.user._id, // беру безпосередньо з middleware
     });
 
     res.status(200).json({
@@ -40,32 +37,30 @@ export const getContactsController = async (req, res) => {
       data: result,
     });
   } catch (err) {
-    console.error(err); // лог помилки у консоль
-    res.status(500).json({
-      status: 500,
-      message: 'Internal server error',
-      data: null,
+    next(err);
+  }
+};
+
+// GET /contacts/:id — отримую контакт по id (тільки свій)
+export const getContactByIdController = async (req, res, next) => {
+  try {
+    const { contactId } = req.params;
+
+    const contact = await getContactById(contactId, req.user._id); // шукаю тільки свої контакти
+
+    if (!contact) throw createHttpError(404, 'Contact not found');
+
+    res.status(200).json({
+      status: 200,
+      message: `Successfully found contact with id ${contactId}!`,
+      data: contact,
     });
+  } catch (err) {
+    next(err);
   }
 };
 
-// Отримую контакт по id
-export const getContactByIdController = async (req, res) => {
-  const { contactId } = req.params;
-
-  const contact = await getContactById(contactId);
-
-  if (!contact) {
-    throw createHttpError(404, 'Contact not found');
-  }
-  res.status(200).json({
-    status: 200,
-    message: `Successfully found contact with id ${contactId}!`,
-    data: contact,
-  });
-};
-
-// Створюю новий контакт
+// POST /contacts — створюю новий контакт
 export const createContactController = async (req, res, next) => {
   try {
     const {
@@ -88,6 +83,7 @@ export const createContactController = async (req, res, next) => {
       phoneNumber,
       isFavourite,
       contactType,
+      userId: req.user._id, // обов'язково userId
     });
 
     res.status(201).json({
@@ -95,36 +91,41 @@ export const createContactController = async (req, res, next) => {
       message: 'Successfully created a contact!',
       data: newContact,
     });
-  } catch (error) {
-    console.error('Create contact error:', error);
-    next(error); // передаємо помилку в errorHandler
+  } catch (err) {
+    next(err); // передаю помилку в errorHandler
   }
 };
 
-// оновлюю дані існуючого контакту.
-export const updateContactController = async (req, res) => {
-  const { contactId } = req.params;
-  const contact = await updateContact(contactId, req.body);
+// PATCH /contacts/:id-для оновлення даних існуючого контакту.
+export const updateContactController = async (req, res, next) => {
+  try {
+    const { contactId } = req.params;
 
-  if (!contact) {
-    throw createHttpError(404, 'Contact not found');
+    const contact = await updateContact(contactId, req.body, req.user._id); // оновлюю тільки свій контакт
+
+    if (!contact) throw createHttpError(404, 'Contact not found');
+
+    res.status(200).json({
+      status: 200,
+      message: 'Successfully patched a contact!',
+      data: contact,
+    });
+  } catch (err) {
+    next(err);
   }
-
-  res.status(200).json({
-    status: 200,
-    message: `"Successfully patched a contact!"`,
-    data: contact,
-  });
 };
 
-// Видаляю контакт
-export const deleteContactController = async (req, res) => {
-  const { contactId } = req.params;
-  const contact = await deleteContact(contactId);
+// DELETE /contacts/:id — видалити контакт (тільки свій)
+export const deleteContactController = async (req, res, next) => {
+  try {
+    const { contactId } = req.params;
 
-  if (!contact) {
-    throw createHttpError(404, 'Contact not found');
+    const contact = await deleteContact(contactId, req.user._id); // видаляю тільки свій контакт
+
+    if (!contact) throw createHttpError(404, 'Contact not found');
+
+    res.status(204).send();
+  } catch (err) {
+    next(err);
   }
-
-  res.status(204).send(); //використовую метод об'єкта res для відправки відповіді з кодом 204 No Content, що означає успішне видалення ресурсу без повернення вмісту.
 };

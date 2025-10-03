@@ -30,6 +30,11 @@ const contactSchema = new mongoose.Schema(
       required: true,
       default: 'personal',
     },
+    userId: {
+      type: Schema.Types.ObjectId, // тип ObjectId
+      required: true,
+      ref: 'users', // посилання на колекцію користувачів
+    },
   },
   {
     timestamps: true, //  автоматично додає createdAt і updatedAt

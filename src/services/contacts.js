@@ -1,57 +1,57 @@
-/*Сервісний модуль для роботи з контактами.Він реалізує логіку взаємодії з базою даних через Mongoose та надає функції для CRUD-операцій (створення, читання, оновлення, видалення).
-Поступово виконую діі з допомогою патерна "query builder":
-  - пагінації (page, perPage)
- - сортування (sortBy, sortOrder)
- - фільтрації (contactType, isFavourite)
- Promise.all — дозволяє виконувати два запити одночастно, отримувати результат одночасно це економити час.*/
+/*
+  Файл: Сервіс для роботи з контактами (/services/contacts.js)
+Призначення:
+    - Логіка взаємодії з базою даних контактів через Mongoose.
+    - CRUD-операції для контактів користувача: створення, читання, оновлення, видалення.
+ Підтримка:
+        - Пагінації (page, perPage)
+        - Сортування (sortBy, sortOrder)
+        - Фільтрації (contactType, isFavourite)
+    - Гарантує, що користувач бачить лише свої контакти (filter by userId).
+Особливості:
+    - Використовує calculatePaginationData для формування метаданих пагінації (кількість сторінок, наступна/попередня сторінка).
+    - Перевіряє валідність ObjectId для contactId та userId.
+    - findOneAndUpdate / findOneAndDelete гарантують, що змінюються/видаляються тільки контакти конкретного користувача.
+*/
 
+import mongoose from 'mongoose';
+import createHttpError from 'http-errors';
 import { Contact } from '../models/contact.js';
 import { calculatePaginationData } from '../utils/calculatePaginationData.js';
+import { SORT_ORDER } from '../constants/index.js';
 
-// Повертаю всі контакти
+// Отримую всі контакти з пагінацією, фільтром і сортуванням
 export async function getAllContacts({
   page = 1,
   perPage = 10,
   sortBy,
   sortOrder,
-  filter = {}, // дода. фільтр як параметр
+  filter = {},
+  userId,
 }) {
+  // Перевіряю, чи коректний userId (щоб уникнути помилок у БД)
+  if (!mongoose.Types.ObjectId.isValid(userId)) {
+    throw createHttpError(400, 'Invalid user ID');
+  }
+
   // Перетворюю параметри у числа та задаю дефолтні значення
   const pageNumber = Number(page?.toString().trim()) || 1;
   const perPageNumber = Number(perPage?.toString().trim()) || 10;
-  const limit = perPageNumber; // limit — кількість елементів на сторінку (якщо не передані, то 10)
-  const skip =
-    (pageNumber - 1) *
-    perPageNumber; /* Обчислюю, скільки документів потрібно пропустити,щоб отримати саме записи поточної сторінки.*/
+  const limit = perPageNumber;
+  const skip = (pageNumber - 1) * perPageNumber;
 
-  /* Використовую патерн  "query builder" з Mongoose для побудови запиту.Це буде базовий запит до колекції Contact без умов,тобто find().*/
-  let query = Contact.find();
+  /* Створюю запит до колекції Contact.Завжди фільтрую за userId — користувач бачить лише свої контакти*/
+  const contactsQuery = Contact.find({ ...filter, userId });
 
-  /*Роблю фільтрацію.Якщо передано тип контакту,тоді додаю умову.Використовую метод
-.equals() задає значення, з яким повинно співпадати поле isFavourite.*/
+  // Рахую кількість усіх контактів, які підпадають під умову (для побудови пагінації)
+  const totalItems = await Contact.countDocuments({ ...filter, userId });
 
-  if (filter.contactType) {
-    query = query.where('contactType').equals(filter.contactType);
-  }
-  // Якщо передано isFavourite, додаю умову
-  if (filter.isFavourite !== undefined) {
-    query = query.where('isFavourite').equals(filter.isFavourite);
-  }
-
-  // роблю сортування, збепігаю напрямок за допомогою змінноі.
-  if (sortBy) {
-    const order = sortOrder === 'asc' ? 1 : -1;
-    query = query.sort({ [sortBy]: order });
-  }
-
-  // Отримую контакти з урахуванням пагінації.
-  query = query.skip(skip).limit(limit);
-
-  // Виконую запити паралельно
-  const [contacts, totalItems] = await Promise.all([
-    query.exec(), // дані контактів для поточної сторінки
-    Contact.countDocuments(filter), // загальна кількість документів з урахуванням фільтра
-  ]);
+  // Отримую контакти для поточної сторінки з урахуванням сортування та пагінації
+  const contacts = await contactsQuery
+    .sort({ [sortBy]: sortOrder })
+    .skip(skip)
+    .limit(limit)
+    .exec();
 
   // Формую метадані пагінації,кількість сторінок, попередня/наступна сторінка
   const pagination = calculatePaginationData(totalItems, limit, pageNumber);
@@ -62,26 +62,48 @@ export async function getAllContacts({
   };
 }
 
-// Повертає контакт за унікальним ID
-export async function getContactById(contactId) {
-  return Contact.findById(contactId);
+// Отримати один контакт по ID — лише свій
+export async function getContactById(contactId, userId) {
+  if (!mongoose.Types.ObjectId.isValid(contactId))
+    throw createHttpError(400, 'Invalid contact ID');
+
+  if (!mongoose.Types.ObjectId.isValid(userId))
+    throw createHttpError(400, 'Invalid user ID');
+
+  return Contact.findOne({ _id: contactId, userId }); //  userId
 }
+
 // Створює новий контакт
 export const createContact = async (payload) => {
-  const contact = await Contact.create(payload);
-  const { name, phoneNumber, email, isFavourite, contactType } = contact._doc;
-  return { name, phoneNumber, email, isFavourite, contactType };
+  if (!payload.userId || !mongoose.Types.ObjectId.isValid(payload.userId)) {
+    throw createHttpError(400, 'Invalid user ID');
+  }
+
+  return Contact.create(payload); // payload  містить userId
 };
 
-// Оновлює дані існуючого контакту.
-export const updateContact = async (contactId, payload) => {
-  const contact = await Contact.findByIdAndUpdate(contactId, payload, {
-    new: true,
-    runValidators: true,
-  });
-  return contact;
+// Оновити контакт (частково) — лише свій
+export const updateContact = async (contactId, payload, userId) => {
+  if (!mongoose.Types.ObjectId.isValid(contactId))
+    throw createHttpError(400, 'Invalid contact ID');
+
+  if (!mongoose.Types.ObjectId.isValid(userId))
+    throw createHttpError(400, 'Invalid user ID');
+
+  return Contact.findOneAndUpdate(
+    { _id: contactId, userId }, // тільки свої контакти
+    payload,
+    { new: true, runValidators: true },
+  );
 };
-// Видаляє контакт за ID з бази даних
-export const deleteContact = async (contactId) => {
-  return Contact.findByIdAndDelete(contactId);
+
+// Видалити контакт за ID  з бази даних лише своі
+export const deleteContact = async (contactId, userId) => {
+  if (!mongoose.Types.ObjectId.isValid(contactId))
+    throw createHttpError(400, 'Invalid contact ID');
+
+  if (!mongoose.Types.ObjectId.isValid(userId))
+    throw createHttpError(400, 'Invalid user ID');
+
+  return Contact.findOneAndDelete({ _id: contactId, userId }); // тільки свої контакти
 };
