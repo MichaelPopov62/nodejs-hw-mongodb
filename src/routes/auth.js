@@ -21,6 +21,7 @@ import { loginUserSchema } from '../validation/auth.js';
 import { loginUserController } from '../controllers/auth.js';
 import { refreshUserSessionController } from '../controllers/auth.js';
 import { logoutUserController } from '../controllers/auth.js';
+import { authenticate } from '../middlewares/authenticate.js';
 
 const router = express.Router(); //створюю роутер
 
@@ -36,10 +37,10 @@ router.post(
   ctrlWrapper(loginUserController),
 );
 
-// Новий роут для оновлення сесії
-router.post('/refresh', ctrlWrapper(refreshUserSessionController));
+// Новий роут для оновлення сесії,перевіряє токен і сесію, гарантує доступ тільки до власної сесії
+router.post('/refresh', authenticate , ctrlWrapper(refreshUserSessionController));
 
-//Новий роут для видалення сесії на основі id сесії
-router.post('/logout', ctrlWrapper(logoutUserController));
+//Новий роут для видалення сесії на основі id сесії,гарантує, що користувач видаляє тільки свою сесію
+router.post('/logout', authenticate , ctrlWrapper(logoutUserController));
 
 export default router;

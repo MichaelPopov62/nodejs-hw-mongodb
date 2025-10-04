@@ -11,13 +11,16 @@
 import { Router } from 'express';
 import contactsRouter from './contacts.js'; // роут для контактів
 import authRouter from './auth.js'; // роут для авторизації та користувачів
+import { authenticate } from '../middlewares/authenticate.js';
 
 const router = Router();
 
-// Підключаю роут для контактів
-router.use('/contacts', contactsRouter);
+// Підключаю роут для контактів.Всі роути для контактів захищені
+router.use('/contacts',authenticate, contactsRouter);
 
-// Підключаю роут для користувачів (реєстрація, логін)
+/* Підключаю роут для користувачів (реєстрація, логін).
+Роути auth залишаються відкритими, але всередині auth.js є authenticate для захищених операцій*/
+
 router.use('/auth', authRouter);
 
 export default router;
