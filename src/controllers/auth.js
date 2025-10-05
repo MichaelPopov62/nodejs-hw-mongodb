@@ -1,4 +1,5 @@
 /* Контролери для аутентифікації користувачів.Реєстрація, логін, оновлення сесії, вихід*/
+import Joi from 'joi';
 
 import { registerUser, loginUser } from '../services/auth.js';
 import { registerUserSchema } from '../validation/auth.js';
@@ -6,6 +7,7 @@ import { ONE_DAY } from '../constants/index.js';
 import { refreshSession } from '../services/auth.js';
 import { logoutUser } from '../services/auth.js';
 import { refreshUsersSession } from '../services/auth.js';
+
 
 /* POST /auth/register -контролер для реєстрації користувача. req.body — дані, які надіслав клієнт (name, email, password) */
 export const registerUserController = async (req, res, next) => {
@@ -68,69 +70,6 @@ export const loginUserController = async (req, res, next) => {
   }
 };
 
-// POST /auth/refresh-оновлення сесії
-export const refreshSessionController = async (req, res, next) => {
-  try {
-    const refreshToken = req.cookies.refreshToken;
-
-    if (!refreshToken) {
-      return res.status(401).json({
-        status: 'error',
-        message: 'Refresh token not found',
-      });
-    }
-
-    // Створюю нову сесію, стара буде видалена
-    const newSession = await refreshSession(refreshToken);
-
-    res.cookie('refreshToken', newSession.refreshToken, {
-      httpOnly: true,
-      maxAge: newSession.refreshTokenValidUntil.getTime() - Date.now(),
-    });
-
-    res.cookie('sessionId', newSession._id, {
-      httpOnly: true,
-      maxAge: ONE_DAY,
-    });
-
-    res.status(200).json({
-      status: 'success',
-      message: 'Successfully refreshed a session!',
-      data: { accessToken: newSession.accessToken }, //новий токен
-    });
-  } catch (error) {
-    next(error);
-  }
-};
-// POST /auth/logout-видалення сесії користувача
-export const logoutUserController = async (req, res, next) => {
-  try {
-    const { sessionId, refreshToken } = req.cookies;
-
-    if (sessionId || refreshToken) {
-      await logoutUser({ sessionId, refreshToken });
-    }
-
-    // Очищую cookies на клієнті
-    res.clearCookie('sessionId');
-    res.clearCookie('refreshToken');
-
-    res.status(204).send();
-  } catch (error) {
-    next(error);
-  }
-};
-//оновлюю сессію допоміжною функцією
-const setupSession = (res, session) => {
-  res.cookie('refreshToken', session.refreshToken, {
-    httpOnly: true,
-    maxAge: ONE_DAY,
-  });
-  res.cookie('sessionId', session._id, {
-    httpOnly: true,
-    maxAge: ONE_DAY,
-  });
-};
 
 /*POST / auth / refresh - user - session-оновлення сесії на основі sessionId та refreshToken з cookies*/
 export const refreshUserSessionController = async (req, res, next) => {
@@ -140,7 +79,16 @@ export const refreshUserSessionController = async (req, res, next) => {
       refreshToken: req.cookies.refreshToken,
     });
 
-    setupSession(res, session);
+      res.cookie('refreshToken', session.refreshToken, {
+      httpOnly: true,
+      maxAge: session.refreshTokenValidUntil.getTime() - Date.now(),
+    });
+
+    res.cookie('sessionId', session._id, {
+      httpOnly: true,
+      maxAge: ONE_DAY,
+    });
+
 
     res.status(200).json({
       status: 'success',
@@ -153,3 +101,27 @@ export const refreshUserSessionController = async (req, res, next) => {
     next(error);
   }
 };
+
+
+// POST /auth/logout-видалення сесії користувача
+export const logoutUserController = async (req, res, next) => {
+  try {
+    const { sessionId} = req.cookies;// отримуємо кукі (було refreshToken)
+
+     if (typeof sessionId === "string") {
+      await logoutUser({ sessionId}); //видаляю сесію з БД
+    }//було ||refreshToken
+
+    // Очищую cookies на клієнті
+    res.clearCookie('sessionId');
+    res.clearCookie('refreshToken');
+
+    res.status(204).send();
+  } catch (error) {
+    next(error);
+  }
+};
+
+
+
+

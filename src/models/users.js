@@ -4,6 +4,7 @@
 
 import { model, Schema } from 'mongoose';
 
+
 // Описую схему користувача
 const usersSchema = new Schema(
   {
