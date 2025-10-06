@@ -100,14 +100,14 @@ export const refreshSession = async (refreshTokenFromCookie) => {
 
 export const logoutUser = async (sessionId, refreshToken) => {
   if (!sessionId && !refreshToken) {
-    throw createHttpError(400, 'No session identifier provided');
+    throw createHttpError(400, 'No session identifier provided');}
 
     const query = {};
     if (sessionId) query._id = sessionId;
     if (refreshToken) query.refreshToken = refreshToken;
     await SessionCollection.deleteOne(query);
-  }
-};
+  };
+
 
 //оновлення сессіі
 const createSession = () => {

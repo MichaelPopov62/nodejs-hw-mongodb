@@ -3,7 +3,8 @@ import { SessionCollection } from '../models/session.js';
 import { UserCollection } from '../models/users.js';
 
 export const authenticate = async (req, res, next) => {
-  const authHeader = req.get('Authorization'); // дістаю заголовок
+  try{
+  const authHeader = req.headers.authorization; // дістаю заголовок
   if (!authHeader) {
     return next(createHttpError(401, 'Please provide Authorization header'));
   }
@@ -33,5 +34,9 @@ export const authenticate = async (req, res, next) => {
 
   // Додаю користувача в req
   req.user = user;
+  req.session = session;
   next();
+    } catch (error) {
+    next(error);
+  }
 };

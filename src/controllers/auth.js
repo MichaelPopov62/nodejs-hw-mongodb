@@ -106,11 +106,11 @@ export const refreshUserSessionController = async (req, res, next) => {
 // POST /auth/logout-видалення сесії користувача
 export const logoutUserController = async (req, res, next) => {
   try {
-    const { sessionId} = req.cookies;// отримуємо кукі (було refreshToken)
+    const { sessionId} = req.cookies;// отримуємо кукі
 
      if (typeof sessionId === "string") {
-      await logoutUser({ sessionId}); //видаляю сесію з БД
-    }//було ||refreshToken
+      await logoutUser( sessionId); //видаляю сесію з БД
+    }
 
     // Очищую cookies на клієнті
     res.clearCookie('sessionId');
