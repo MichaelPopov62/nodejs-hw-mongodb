@@ -1,13 +1,23 @@
-/*ЗАВДАННЯ коду-централізовано ловити помилки, що виникають у контролерах, і повертати клієнту зрозумілу відповідь з відповідним HTTP-статусом.*/
+/* Глобальний middleware для обробки помилок.
+   Якщо помилка створена через createHttpError — повертає відповідний статус та повідомлення.
+   Для всіх інших помилок — повертає 500 Internal Server Error. */
+
 import createHttpError from 'http-errors';
+const { HttpError } = createHttpError;
 
 export const errorHandler = (err, req, res, next) => {
-  const status = err.status || 500;
-  const message = err.message || 'Something went wrong';
-  res.status(status).json({
-    status,
-    message,
-    errors: err.errors || null, //деталізація помилки від Joi
-    data: null,
+  // Якщо це очікувана помилка (створена через createHttpError
+  if (err instanceof HttpError) {
+    return res.status(err.status).json({
+      status: String(err.status), // статус з помилки (наприклад, 409,401,400)
+      message: err.name || 'Error', // повідомлення про помилку текст,який передаю у createHttpError
+      data: { message: err.message }, // повідомлення у data
+    });
+  }
+
+  // Для всіх інших помилок — 500 Internal Server Error
+  res.status(500).json({
+    status: '500',
+    data: { message: err.message || 'Something went wrong' },
   });
 };

@@ -1,4 +1,4 @@
-/*Код перевіряє тіло запиту (req.body) за переданою Joi-схемою:*/
+/*Код перевіряє тіло запиту (req.body) за переданою Joi-схемою. Якщо валідація не пройшла — повертає помилку 400 (Bad Request) з описом помилок. */
 
 import createHttpError from 'http-errors';
 
@@ -7,13 +7,9 @@ export const validateBody = (schema) => async (req, res, next) => {
     await schema.validateAsync(req.body, {
       abortEarly: false,
     });
-    next();
+    next(); // якщо помилки немає, передаю управління далі
   } catch (err) {
-    const errors = err.details.map((detail) => ({
-      field: detail.path.join('.'),
-      message: detail.message,
-    }));
-    const error = createHttpError(400, 'Validation Error', { errors });
-    next(error);
+    const error = createHttpError(400, 'Bad Request', { errors: err.details });
+    next(error); // передаю помилку в глобальний errorHandler
   }
 };

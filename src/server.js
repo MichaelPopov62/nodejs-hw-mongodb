@@ -6,9 +6,10 @@ import express from 'express';
 import cors from 'cors';
 import pinoHttp from 'pino-http';
 import { initMongoConnection } from './db/initMongoConnection.js';
-import contactsRouter from './routers/contacts.js';
+import router from './routes/index.js';
 import { errorHandler } from './middlewares/errorHandler.js';
 import { notFoundHandler } from './middlewares/notFoundHandler.js';
+import cookieParser from 'cookie-parser';
 
 // Завантажую змінні оточення
 dotenv.config();
@@ -19,11 +20,20 @@ export function setupServer() {
 
   // Підключаю JSON middleware
   app.use(express.json());
+  //Налаштування cors
 
-  //Налаштування cors та логгера pino використовуючі метод use
-  app.use(cors()); // дозвол для всіх джерел
+  app.use(cors()); // Налаштування дозвол для всіх використовуючі метод use
+
+  // Підключення cookie-parser
+  app.use(cookieParser());
+
+  //Налаштування pino використовуючі метод use
   app.use(pinoHttp()); //функція яка імпортується з бібліотеки pino-http
-  app.use('/contacts', contactsRouter); //реєструю роутер для контактів
+
+  app.use(router); // Тепер запити виглядають так:
+  // GET /contacts       → contactsRouter
+  // POST /contacts      → contactsRouter
+  // POST /auth/register → authRouter
 
   /* Додатковий рут для головної сторінки. Коли користувач заходить https://nodejs-hw-mongodb-zpxp.onrender.com/, сервер повертає просте повідомлення.
 Це не стосується бази даних — просто інформативне повідомлення для того, хто відкрив головний URL.*/

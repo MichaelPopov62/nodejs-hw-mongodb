@@ -18,8 +18,13 @@ import {
   updateContactSchema,
 } from '../validation/contacts.js'; // імпортую Joi-схеми
 import { isValidId } from '../middlewares/isValidId.js';
+import { authenticate } from '../middlewares/authenticate.js';
+
 
 const router = express.Router(); //створюю роутер
+router.use(authenticate); // застосовую middleware для аутентифікації
+
+
 
 // Реєструю роут GET /contacts, який повертає всі контакти з бази даних
 router.get('/', ctrlWrapper(getContactsController));
