@@ -29,6 +29,7 @@ export const sendMail = async ({ from, to, subject, html }) => {
     });
     return info;//інформація про відправлений лист
   } catch (err) {
+    console.error('SMTP Error:', err); //лог помилки для Render
     throw err;
   }
 };
