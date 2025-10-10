@@ -20,12 +20,12 @@ export function setupServer() {
 
   // Підключаю JSON middleware
   app.use(express.json());
-  //Налаштування cors
-
-  app.use(cors()); // Налаштування дозвол для всіх використовуючі метод use
 
   // Підключення cookie-parser
   app.use(cookieParser());
+
+  //Налаштування cors
+  app.use(cors()); // Налаштування дозвол для всіх використовуючі метод use
 
   //Налаштування pino використовуючі метод use
   app.use(pinoHttp()); //функція яка імпортується з бібліотеки pino-http

@@ -11,14 +11,15 @@ import {
   deleteContactController,
   updateContactController,
 } from '../controllers/contacts.js';
-import { ctrlWrapper } from '../utils/ctrlWrapper.js';
-import { validateBody } from '../middlewares/validateBody.js';
+import { ctrlWrapper } from '../utils/ctrlWrapper.js';// імпортую утиліту для обгортки контролерів
+import { validateBody } from '../middlewares/validateBody.js';// імпортую middleware для валідації тіла запиту
 import {
   createContactSchema,
   updateContactSchema,
-} from '../validation/contacts.js'; // імпортую Joi-схеми
-import { isValidId } from '../middlewares/isValidId.js';
-import { authenticate } from '../middlewares/authenticate.js';
+} from '../validation/contacts.js'; // імпортую Joi-схеми валідації
+import { isValidId } from '../middlewares/isValidId.js';// імпортую middleware для перевірки валідності ID
+import { authenticate } from '../middlewares/authenticate.js';// імпортую middleware для аутентифікації
+import { upload } from '../middlewares/upload.js';// імпортую middleware для обробки файлів
 
 
 const router = express.Router(); //створюю роутер
@@ -27,14 +28,18 @@ router.use(authenticate); // застосовую middleware для аутент
 
 
 // Реєструю роут GET /contacts, який повертає всі контакти з бази даних
-router.get('/', ctrlWrapper(getContactsController));
+router.get('/',
+  ctrlWrapper(getContactsController));
 
 // додаю middleware isValidId для перевірки валідності ID перед викликом контролера getContactByIdController
-router.get('/:contactId', isValidId, ctrlWrapper(getContactByIdController));
+router.get('/:contactId',
+   isValidId,
+    ctrlWrapper(getContactByIdController));
 
 // Додаю валідацію на створення контакту
 router.post(
   '/',
+  upload.single('photo'), // обробка одного файлу з полем 'photo'
   validateBody(createContactSchema), // валідація тіла запиту за допомогою Joi-схеми
   ctrlWrapper(createContactController), //обгортка контролера для обробки помилок
 );
@@ -42,6 +47,7 @@ router.post(
 // додаю валідацію на оновлення контакту
 router.patch(
   '/:contactId',
+  upload.single('photo'), // обробка одного файлу з полем 'photo'
   isValidId,
   validateBody(updateContactSchema), // нова Joi-схема
   ctrlWrapper(updateContactController),

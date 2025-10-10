@@ -1,13 +1,27 @@
+/*  Призначення файлу:
+middleware для аутентифікації користувачів.
+Перевіряє наявність заголовка Authorization.
+Перевіряє правильність формату "Bearer token".
+Шукає сесію у базі даних за accessToken.
+Перевіряє, чи не прострочений accessToken.
+Знаходить користувача за session.userId.
+Додає об'єкт користувача у req.user для подальшого використання у контролерах.
+Якщо щось не так, повертає помилку 401 через createHttpError.
+*/
+
+
 import createHttpError from 'http-errors';
 import { SessionCollection } from '../models/session.js';
 import { UserCollection } from '../models/users.js';
 
+// Middleware для аутентифікації користувача через accessToken
 export const authenticate = async (req, res, next) => {
-  try{
+
   const authHeader = req.headers.authorization; // дістаю заголовок
   if (!authHeader) {
     return next(createHttpError(401, 'Please provide Authorization header'));
   }
+
   // Очікую формат: "Bearer token"
   const [bearer, token] = authHeader.split(' ');
   if (bearer !== 'Bearer' || !token) {
@@ -19,6 +33,7 @@ export const authenticate = async (req, res, next) => {
   if (!session) {
     return next(createHttpError(401, 'Session not found'));
   }
+
   // Перевірка на простроченість access токена
   const isAccessTokenExpired =
     new Date() > new Date(session.accessTokenValidUntil);
@@ -34,9 +49,5 @@ export const authenticate = async (req, res, next) => {
 
   // Додаю користувача в req
   req.user = user;
-  req.session = session;
   next();
-    } catch (error) {
-    next(error);
-  }
 };

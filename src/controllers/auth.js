@@ -1,15 +1,19 @@
-/* Контролери для аутентифікації користувачів.Реєстрація, логін, оновлення сесії, вихід*/
+/*Контролери для аутентифікації користувачів.
+   Реєстрація, логін, оновлення сесії, вихід, скидання пароля */
+
 import Joi from 'joi';
 
-import { registerUser, loginUser } from '../services/auth.js';
-import { registerUserSchema } from '../validation/auth.js';
-import { ONE_DAY } from '../constants/index.js';
-import { refreshSession } from '../services/auth.js';
-import { logoutUser } from '../services/auth.js';
-import { refreshUsersSession } from '../services/auth.js';
+import { registerUser, loginUser } from '../services/auth.js';//
+import { registerUserSchema } from '../validation/auth.js';//
+import { ONE_DAY } from '../constants/index.js';//
+import { refreshSession } from '../services/auth.js';//
+import { logoutUser } from '../services/auth.js';//
+import { refreshUsersSession } from '../services/auth.js';//
+import { requestResetToken } from '../services/auth.js';
+import { resetPassword } from '../services/auth.js';
 
 
-/* POST /auth/register -контролер для реєстрації користувача. req.body — дані, які надіслав клієнт (name, email, password) */
+/* Реєстрація користувача. Валідація через Joi, хешування пароля в сервісі, повертає нового користувача.*/
 export const registerUserController = async (req, res, next) => {
   try {
     //  Валідація даних через Joi
@@ -26,9 +30,8 @@ export const registerUserController = async (req, res, next) => {
       });
     }
 
-    /*  Реєстрація користувача через сервіс.Сервіс сам хешує пароль і перевіряє унікальність email*/
+/*  Реєстрація користувача через сервіс.Сервіс сам хешує пароль і перевіряє унікальність email*/
     const newUser = await registerUser(value);
-
     res.status(201).json({
       status: 201,
       message: 'Successfully registered a user!',
@@ -39,7 +42,7 @@ export const registerUserController = async (req, res, next) => {
   }
 };
 
-// POST /auth/login- Логін користувача та створення сесії
+//Логін користувача, створення сесії, встановлення refreshToken і sessionId у cookie, повертає accessToken
 export const loginUserController = async (req, res, next) => {
   try {
     const session = await loginUser(req.body); // повертає об'єкт сесії з токенами
@@ -71,7 +74,72 @@ export const loginUserController = async (req, res, next) => {
 };
 
 
-/*POST / auth / refresh - user - session-оновлення сесії на основі sessionId та refreshToken з cookies*/
+/*Оновлення сесії на основі refreshToken з cookie, повертає новий accessToken*/
+export const refreshSessionController = async (req, res, next) => {
+  try {
+    const refreshToken = req.cookies.refreshToken;
+     if (!refreshToken) {
+      return res.status(401).json({
+        status: 'error',
+        message: 'Refresh token not found',
+      });
+    }
+    // Встановлюю новий refreshToken у cookie
+    const newSession = await refreshSession(refreshToken);
+
+    res.cookie('refreshToken', newSession.refreshToken, {
+      httpOnly: true,
+      maxAge: newSession.refreshTokenValidUntil.getTime() - Date.now(),
+    });
+
+    res.cookie('sessionId', newSession._id, {
+      httpOnly: true,
+      maxAge: ONE_DAY,
+    });
+    res.status(200).json({
+      status: 'success',
+      message: 'Successfully refreshed a session!',
+      data: {
+        accessToken: newSession.accessToken,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Видалення сесії з БД, очищення cookie (sessionId і refreshToken
+export const logoutUserController = async (req, res, next) => {
+  try {
+    const { sessionId,refreshToken } = req.cookies;// отримуємо кукі
+
+     if (sessionId || refreshToken) {
+      await logoutUser( sessionId,refreshToken); //видаляю сесію з БД
+    }
+
+    // Очищую cookies на клієнті
+    res.clearCookie('sessionId');
+    res.clearCookie('refreshToken');
+
+    res.status(204).send();
+  } catch (error) {
+    next(error);
+  }
+};
+
+//оновлюю сессію
+const setupSession = (res, session) => {
+  res.cookie('refreshToken', session.refreshToken, {
+    httpOnly: true,
+    maxAge: ONE_DAY,
+  });
+  res.cookie('sessionId', session._id, {
+    httpOnly: true,
+    maxAge: ONE_DAY,
+  });
+};
+
+//Альтернативне оновлення сесії через сервіс refreshUsersSession, встановлює cookie через setupSession().
 export const refreshUserSessionController = async (req, res, next) => {
   try {
     const session = await refreshUsersSession({
@@ -79,16 +147,7 @@ export const refreshUserSessionController = async (req, res, next) => {
       refreshToken: req.cookies.refreshToken,
     });
 
-      res.cookie('refreshToken', session.refreshToken, {
-      httpOnly: true,
-      maxAge: session.refreshTokenValidUntil.getTime() - Date.now(),
-    });
-
-    res.cookie('sessionId', session._id, {
-      httpOnly: true,
-      maxAge: ONE_DAY,
-    });
-
+    setupSession(res, session);
 
     res.status(200).json({
       status: 'success',
@@ -101,26 +160,44 @@ export const refreshUserSessionController = async (req, res, next) => {
     next(error);
   }
 };
-
-
-// POST /auth/logout-видалення сесії користувача
-export const logoutUserController = async (req, res, next) => {
+//Відправка email для скидання пароля.
+export const requestResetEmailController = async (req, res, next) => {
   try {
-    const { sessionId} = req.cookies;// отримуємо кукі
+    const token = await requestResetToken(req.body.email); //зберігаю результат
 
-     if (typeof sessionId === "string") {
-      await logoutUser( sessionId); //видаляю сесію з БД
-    }
-
-    // Очищую cookies на клієнті
-    res.clearCookie('sessionId');
-    res.clearCookie('refreshToken');
-
-    res.status(204).send();
+    res.status(200).json({
+      status: 200,
+      message: 'Reset password email has been successfully sent.',
+      data: {},
+    });
   } catch (error) {
     next(error);
   }
 };
+
+//Зміна пароля за токеном. Перевірка валідності пароля.
+export const resetPasswordController = async (req, res, next) => {
+  try {
+    const { token, password } = req.body;
+    // Перевіряю, чи переданий пароль
+    if (!password || typeof password !== 'string') {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Password is required and must be a string',
+      });
+    }
+    await resetPassword(token, password);
+    res.status(200).json({
+      status: 200,
+      message: 'Password has been successfully reset',
+      data: {},
+    });
+  } catch (error) {
+    console.error('Reset password error:', error);
+    next(error);
+  }
+};
+
 
 
 

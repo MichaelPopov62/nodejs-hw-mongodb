@@ -1,6 +1,6 @@
 /*ЗАВДАННЯ коду-обробляти HTTP-запити,
  Взаємодіяти із сервісом(services/contacts.js), де міститься логіка роботи з базою даних (MongoDB через Mongoose).
- Формувати відповіді для клієнта у форматі JSON із статусом, повідомленням та даними.Обробляти помилки через createHttpError.*/
+ Формувати відповіді для клієнта у форматі JSON із статусом, повідомленням та даними.Обробляти помилки через createHttpError.Завантаження файлів на Cloudinary*/
 
 import createHttpError from 'http-errors';
 import {
@@ -11,10 +11,12 @@ import {
   updateContact,
 } from '../services/contacts.js';
 import { parsePaginationParams } from '../utils/parsePaginationParams.js';
+import { calculatePaginationData } from '../utils/calculatePaginationData.js';
 import { parseSortParams } from '../utils/parseSortParams.js';
 import { parseFilterParams } from '../utils/parseFilterParams.js';
+import { saveFileToCloudinary } from '../utils/saveFileToCloudinary.js';
 
-// Отримую всі контакти
+// Отримання списку контактів користувача з пагінацією, фільтрацією та сортуванням.
 export const getContactsController = async (req, res, next) => {
   try {
     const { page, perPage } = parsePaginationParams(req.query);
@@ -41,7 +43,7 @@ export const getContactsController = async (req, res, next) => {
   }
 };
 
-// GET /contacts/:id — отримую контакт по id (тільки свій)
+// Отримання одного контакту по id (тільки свій).
 export const getContactByIdController = async (req, res, next) => {
   try {
     const { contactId } = req.params;
@@ -60,7 +62,7 @@ export const getContactByIdController = async (req, res, next) => {
   }
 };
 
-// POST /contacts — створюю новий контакт
+// Створення нового контакту. Завантаження фото на Cloudinary (якщо є).
 export const createContactController = async (req, res, next) => {
   try {
     const {
@@ -77,13 +79,23 @@ export const createContactController = async (req, res, next) => {
         'Missing required fields: name, phoneNumber, contactType',
       );
     }
+
+
+    // Завантаження фото на Cloudinary, якщо воно є в запиті
+      let photoUrl = null;// якщо фото немає
+    if (req.file) {
+      photoUrl = await saveFileToCloudinary(req.file.buffer); // завантаження на Cloudinary
+    }
+
+
     const newContact = await createContact({
       name,
       email,
       phoneNumber,
       isFavourite,
       contactType,
-      userId: req.user._id, // обов'язково userId
+      userId: req.user._id, // обов'язково
+      photo: photoUrl, // додаю URL фото до контакту
     });
 
     res.status(201).json({
@@ -96,10 +108,14 @@ export const createContactController = async (req, res, next) => {
   }
 };
 
-// PATCH /contacts/:id-для оновлення даних існуючого контакту.
+// Оновлення існуючого контакту. Можливе оновлення фото через Cloudinary.
 export const updateContactController = async (req, res, next) => {
   try {
     const { contactId } = req.params;
+        if (req.file) {
+      const photoUrl = await saveFileToCloudinary(req.file.buffer);
+      req.body.photo = photoUrl; // додаю URL до оновлення
+    }
 
     const contact = await updateContact(contactId, req.body, req.user._id); // оновлюю тільки свій контакт
 
@@ -115,7 +131,7 @@ export const updateContactController = async (req, res, next) => {
   }
 };
 
-// DELETE /contacts/:id — видалити контакт (тільки свій)
+// Видалення контакту користувача. Повертає статус 204 без тіла.
 export const deleteContactController = async (req, res, next) => {
   try {
     const { contactId } = req.params;
