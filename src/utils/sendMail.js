@@ -22,7 +22,7 @@ const transporter = nodemailer.createTransport({
 export const sendMail = async ({ from, to, subject, html }) => {
   try {
     const info = await transporter.sendMail({
-      from: from || process.env.SMTP_FROM || process.env.SMTP_USER,
+      from:  process.env.SMTP_USER,//from || process.env.SMTP_FROM ||
       to,//емейл отримувача
       subject,//тема листа
       html,//вміст листа у форматі HTML
