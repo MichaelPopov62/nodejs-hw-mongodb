@@ -36,7 +36,7 @@ dotenv.config();//для доступу до змінних оточення
 
 // Одноразове завантаження шаблону листа в памʼять.ЦЕ БУДЕ ЗНАХОДИТИСЯ В ОПЕРАТИВНІЙ ПАМ'ЯТІ
 const REQUEST_PASSWORD_RESET_TEMPLATE = fs.readFileSync(
-  path.resolve('src/templates/send-reset-email.html'),
+  path.join(process.cwd(), 'src', 'templates', 'send-reset-email.html'),
   { encoding: 'UTF-8' },
 );
 
