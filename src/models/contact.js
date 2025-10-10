@@ -35,6 +35,10 @@ const contactSchema = new mongoose.Schema(
       required: true,
       ref: 'users', // посилання на колекцію користувачів
     },
+     photo: { // нове поле для зберігання URL фото
+      type: String,
+      default: null, // якщо фото немає
+    },
   },
   {
     timestamps: true, //  автоматично додає createdAt і updatedAt

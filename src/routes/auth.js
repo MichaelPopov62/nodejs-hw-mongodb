@@ -12,7 +12,7 @@
   - Призначення: централізовано організувати маршрути для роботи з авторизацією, забезпечити валідацію даних і обробку помилок.
 */
 
-import express from 'express'; //імпортую express
+import express from 'express'; //імпортую express//
 import { ctrlWrapper } from '../utils/ctrlWrapper.js';
 import { registerUserController } from '../controllers/auth.js';
 import { registerUserSchema } from '../validation/auth.js';
@@ -21,6 +21,11 @@ import { loginUserSchema } from '../validation/auth.js';
 import { loginUserController } from '../controllers/auth.js';
 import { refreshUserSessionController } from '../controllers/auth.js';
 import { logoutUserController } from '../controllers/auth.js';
+import { authenticate } from '../middlewares/authenticate.js';
+import { requestResetEmailSchema } from '../validation/auth.js';
+import { requestResetEmailController } from '../controllers/auth.js';
+import { resetPasswordController } from '../controllers/auth.js';
+import { resetPasswordSchema } from '../validation/auth.js'; // Joi схема для token + password
 
 
 const router = express.Router(); //створюю роутер
@@ -37,11 +42,27 @@ router.post(
   ctrlWrapper(loginUserController),
 );
 
-// Новий роут для оновлення сесії, використовуючи refresh токен і sessionId з cookies
-router.post('/refresh', ctrlWrapper(refreshUserSessionController));
+// Новий роут для оновлення.authenticate-захищає щоб неавторизований користувач не міг надіслати запит і змінювати  чужі сесії
+router.post(
+  '/refresh',
+  authenticate,
+   ctrlWrapper(refreshUserSessionController));
 
-//Новий роут.видаляє сесію користувача на основі sessionId з cookies та очищує cookies (refreshToken, sessionId)
+///Новий роут для видалення сесії на основі id.authenticate-гарантує,що користувач видаляє тільки свою сесію, не чужу
+router.post('/logout', authenticate, ctrlWrapper(logoutUserController));
 
-router.post('/logout', ctrlWrapper(logoutUserController));
+//роут для скидання паролю через емейл
+router.post(
+  '/send-reset-email',
+  validateBody(requestResetEmailSchema),
+  ctrlWrapper(requestResetEmailController),
+);
+
+//роут для зміни пароля
+router.post(
+  '/reset-pwd',
+  validateBody(resetPasswordSchema),
+  ctrlWrapper(resetPasswordController),
+);
 
 export default router;

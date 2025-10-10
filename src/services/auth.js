@@ -25,8 +25,27 @@ import {
   THIRTY_DAYS,
   ONE_DAY,
 } from '../constants/index.js';
+import { sendMail } from '../utils/sendMail.js';
+import dotenv from 'dotenv';
+import jwt from 'jsonwebtoken';
+import Handlebars from 'handlebars';
+import fs from 'fs';
+import path from 'path';
 
-//створюю нового користувача у колекції де payload — об'єкт з даними користувача: { name, email, password }
+dotenv.config();//для доступу до змінних оточення
+
+// Одноразове завантаження шаблону листа в памʼять.ЦЕ БУДЕ ЗНАХОДИТИСЯ В ОПЕРАТИВНІЙ ПАМ'ЯТІ
+const REQUEST_PASSWORD_RESET_TEMPLATE = fs.readFileSync(
+  path.resolve('src/templates/send-reset-email.html'),
+  { encoding: 'UTF-8' },
+);
+
+//компілюю шаблон
+const sendResetEmailTemplate = Handlebars.compile(
+  REQUEST_PASSWORD_RESET_TEMPLATE,
+);
+
+//Реєстрація нового користувача у колекції де payload — об'єкт з даними користувача: { name, email, password }
 export const registerUser = async (payload) => {
   const user = await UserCollection.findOne({ email: payload.email }); //знайти один документ у колекції, який відповідає умовам
 
@@ -39,7 +58,7 @@ export const registerUser = async (payload) => {
   return await UserCollection.create(payload);
 };
 
-//  Шукаю користувача в базі по email
+// Логін: перевірка + створення токенів і сесії
 export const loginUser = async (payload) => {
   const user = await UserCollection.findOne({ email: payload.email });
 
@@ -133,12 +152,17 @@ export const refreshUsersSession = async ({ sessionId, refreshToken }) => {
   if (!session) {
     throw createHttpError(401, 'Session not found');
   }
+
   // Перевіряю, чи не закінчився токен
   if (new Date() > new Date(session.refreshTokenValidUntil)) {
     throw createHttpError(401, 'Session token expired');
   }
+
+
   // Створюю нову сесію
   const newSession = createSession();
+
+
   // Видаляю стару
   await SessionCollection.deleteOne({ _id: sessionId, refreshToken });
 
@@ -146,4 +170,75 @@ export const refreshUsersSession = async ({ sessionId, refreshToken }) => {
     userId: session.userId,
     ...newSession,
   });
+};
+
+
+//  скидання паролю через емейл
+export const requestResetToken = async (email) => {
+  const user = await UserCollection.findOne({ email });
+
+  if (!user) {
+    throw createHttpError(404, 'User not found');
+    return;
+  }
+
+  const token = jwt.sign(
+    { sub: user._id, email }, //sub-індефтифікатор користувача
+    process.env.JWT_SECRET,
+    { expiresIn: '5m' }, // по завданню 5 хвилин
+  );
+
+  const resetPasswordLink = `${
+    process.env.APP_DOMAIN || 'http://localhost:3000/auth'
+  }/reset-password?token=${token}`;
+  try {
+    await sendMail({
+      to: email,
+      subject: 'Reset password instruction',
+      html: sendResetEmailTemplate({ resetPasswordLink }),
+      from: process.env.SMTP_FROM,
+    });
+
+  } catch (err) {
+    throw createHttpError(
+      500,
+      'Failed to send the email, please try again later.',
+    );
+  }
+  return token;
+};
+
+// зміна паролю по токену
+export const resetPassword = async (token, password) => {
+  try {
+    const payload = jwt.verify(token, process.env.JWT_SECRET); //перевіряю токен
+
+    //знаходжу користувача по email і id
+    const user = await UserCollection.findOne({
+      email: payload.email,
+      _id: payload.sub,
+    });
+
+    if (!user) {
+      throw createHttpError(404, 'User not found');
+    }
+
+    // Хешую новий пароль
+    const hashedPassword = await bcrypt.hash(password, 10);
+    // Оновлюю пароль у користувача
+    await UserCollection.updateOne(
+      { _id: payload.sub },
+      { password: hashedPassword },
+    );
+
+    // Видаляю всі сесії користувача
+    await SessionCollection.deleteMany({ userId: user._id });
+  } catch (err) {
+    //Обробка JWT помилок
+    if (err.name === 'TokenExpiredError' || err.name === 'JsonWebTokenError') {
+      throw createHttpError(401, 'Token is expired or invalid.');
+    }
+
+    throw err;
+  }
 };

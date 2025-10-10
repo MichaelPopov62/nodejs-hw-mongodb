@@ -31,7 +31,11 @@ export const createContactSchema = Joi.object({
       'any.required': 'Phone number is required',
     }),
 
-  isFavourite: Joi.boolean().messages({
+  isFavourite: Joi.boolean()
+   .truthy('true')//якщо з Postman приходить "true" (рядок), Joi сприймає як true
+    .falsy('false')//якщо "false" то як false
+    .default(false)//якщо не передано — ставить false автоматично
+    .messages({
     'boolean.base': 'isFavourite must be true or false',
   }), //це булеве значення (true або false). Не обов'язкове.
 

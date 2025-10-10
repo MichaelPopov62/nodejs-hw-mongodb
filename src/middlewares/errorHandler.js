@@ -2,8 +2,7 @@
    Якщо помилка створена через createHttpError — повертає відповідний статус та повідомлення.
    Для всіх інших помилок — повертає 500 Internal Server Error. */
 
-import createHttpError from 'http-errors';
-const { HttpError } = createHttpError;
+import {HttpError} from 'http-errors';
 
 export const errorHandler = (err, req, res, next) => {
   // Якщо це очікувана помилка (створена через createHttpError
