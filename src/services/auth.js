@@ -163,7 +163,7 @@ export const requestResetToken = async (email) => {
   const token = jwt.sign(
     { sub: user._id, email }, //sub-індефтифікатор користувача
     process.env.JWT_SECRET,
-    { expiresIn: '5m' }, // по завданню 5 хвилин
+    { expiresIn: '24h' }, // по завданню 5 хвилин
   );
 
   // const resetPasswordLink = `${
