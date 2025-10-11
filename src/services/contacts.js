@@ -58,7 +58,7 @@ export async function getAllContacts({
 
   return {
     data: contacts, // масив контактів для поточної сторінки
-    ...pagination, ////  дані пагінаціі
+    ...pagination, // дані пагінації
   };
 }
 

@@ -83,7 +83,7 @@ export const loginUser = async (payload) => {
     userId: user._id,
     accessToken,
     refreshToken,
-    accessTokenValidUntil: new Date(Date.now() + SIXTY_MINUTES),
+    accessTokenValidUntil: new Date(Date.now() + FIFTEEN_MINUTES),
     refreshTokenValidUntil: new Date(Date.now() + THIRTY_DAYS),
   });
 };
@@ -118,7 +118,7 @@ export const refreshSession = async (refreshTokenFromCookie) => {
     userId: oldSession.userId,
     accessToken,
     refreshToken,
-    accessTokenValidUntil: new Date(Date.now() + SIXTY_MINUTES),
+    accessTokenValidUntil: new Date(Date.now() + FIFTEEN_MINUTES),
     refreshTokenValidUntil: new Date(Date.now() + THIRTY_DAYS),
   });
   return newSession;
@@ -143,7 +143,7 @@ const createSession = () => {
   return {
     accessToken,
     refreshToken,
-    accessTokenValidUntil: new Date(Date.now() + SIXTY_MINUTES),
+    accessTokenValidUntil: new Date(Date.now() + FIFTEEN_MINUTES),
     refreshTokenValidUntil: new Date(Date.now() + ONE_DAY),
   };
 };
@@ -163,13 +163,10 @@ export const requestResetToken = async (email) => {
   const token = jwt.sign(
     { sub: user._id, email }, //sub-індефтифікатор користувача
     process.env.JWT_SECRET,
-    { expiresIn: '24h' }, // по завданню 5 хвилин
+    { expiresIn: '5m' }, // по завданню 5 хвилин
   );
 
-  // const resetPasswordLink = `${
-  //   process.env.APP_DOMAIN || 'http://localhost:3000/auth'
-  // }/reset-password?token=${token}`;
-
+//  створюю посилання для скидання паролю
   const resetPasswordLink = new URL(
   `/auth/reset-password?token=${token}`,
   process.env.APP_DOMAIN || 'http://localhost:3000'
