@@ -99,6 +99,13 @@ export const refreshSession = async (refreshTokenFromCookie) => {
   });
   if (!oldSession) throw createHttpError(404, 'Session not found');
 
+    // Перевіряю, чи не закінчився токен
+  if (new Date() > new Date(oldSession.refreshTokenValidUntil)) {
+    // удаляємо стару сесію для чистоти
+    await SessionCollection.deleteOne({ _id: oldSession._id });
+    throw createHttpError(401, 'Refresh token expired');
+  }
+
   // Видаляю стару сесію
   await SessionCollection.deleteOne({ _id: oldSession._id });
 
@@ -141,36 +148,7 @@ const createSession = () => {
   };
 };
 
-export const refreshUsersSession = async ({ sessionId, refreshToken }) => {
-  if (!refreshToken) {
-    throw createHttpError(401, 'Refresh token missing');
-  }
-  // Знаходжу сесію
-  const query = sessionId ? { _id: sessionId, refreshToken } : { refreshToken };
-  const session = await SessionCollection.findOne(query);
 
-  if (!session) {
-    throw createHttpError(401, 'Session not found');
-  }
-
-  // Перевіряю, чи не закінчився токен
-  if (new Date() > new Date(session.refreshTokenValidUntil)) {
-    throw createHttpError(401, 'Session token expired');
-  }
-
-
-  // Створюю нову сесію
-  const newSession = createSession();
-
-
-  // Видаляю стару
-  await SessionCollection.deleteOne({ _id: sessionId, refreshToken });
-
-  return await SessionCollection.create({
-    userId: session.userId,
-    ...newSession,
-  });
-};
 
 
 //  скидання паролю через емейл
@@ -188,9 +166,15 @@ export const requestResetToken = async (email) => {
     { expiresIn: '5m' }, // по завданню 5 хвилин
   );
 
-  const resetPasswordLink = `${
-    process.env.APP_DOMAIN || 'http://localhost:3000/auth'
-  }/reset-password?token=${token}`;
+//  створюю посилання для скидання паролю
+  const resetPasswordLink = new URL(
+  `/auth/reset-password?token=${token}`,
+  process.env.APP_DOMAIN || 'http://localhost:3000'
+).toString();
+
+
+
+//  надсилаю листа
   try {
     await sendMail({
       to: email,
