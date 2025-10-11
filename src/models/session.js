@@ -6,7 +6,7 @@ import { Schema, model } from 'mongoose';
 
 const sessionSchema = new Schema(
   {
-    userId: { type: String, required: true }, //ідентифікатор користувача, який належить цій сесії
+    userId: { type: Schema.Types.ObjectId, required: true }, //ідентифікатор користувача, який належить цій сесії
     accessToken: { type: String, required: true }, //  токен доступу, потрібний для авторизації користувача
     refreshToken: { type: String, required: true }, // токен для отримання нового accessToken після його закінчен
     accessTokenValidUntil: { type: Date, required: true }, //дата і час, коли токен доступу перестає бути дійсним

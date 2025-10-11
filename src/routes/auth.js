@@ -19,9 +19,8 @@ import { registerUserSchema } from '../validation/auth.js';
 import { validateBody } from '../middlewares/validateBody.js';
 import { loginUserSchema } from '../validation/auth.js';
 import { loginUserController } from '../controllers/auth.js';
-import { refreshUserSessionController } from '../controllers/auth.js';
+import { refreshSessionController } from '../controllers/auth.js';
 import { logoutUserController } from '../controllers/auth.js';
-import { authenticate } from '../middlewares/authenticate.js';
 import { requestResetEmailSchema } from '../validation/auth.js';
 import { requestResetEmailController } from '../controllers/auth.js';
 import { resetPasswordController } from '../controllers/auth.js';
@@ -45,11 +44,11 @@ router.post(
 // Новий роут для оновлення.authenticate-захищає щоб неавторизований користувач не міг надіслати запит і змінювати  чужі сесії
 router.post(
   '/refresh',
-  authenticate,
-   ctrlWrapper(refreshUserSessionController));
+   ctrlWrapper(refreshSessionController));
 
 ///Новий роут для видалення сесії на основі id.authenticate-гарантує,що користувач видаляє тільки свою сесію, не чужу
-router.post('/logout', authenticate, ctrlWrapper(logoutUserController));
+router.post('/logout',
+  ctrlWrapper(logoutUserController));
 
 //роут для скидання паролю через емейл
 router.post(

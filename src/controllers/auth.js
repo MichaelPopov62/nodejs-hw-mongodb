@@ -8,7 +8,6 @@ import { registerUserSchema } from '../validation/auth.js';//
 import { ONE_DAY } from '../constants/index.js';//
 import { refreshSession } from '../services/auth.js';//
 import { logoutUser } from '../services/auth.js';//
-import { refreshUsersSession } from '../services/auth.js';//
 import { requestResetToken } from '../services/auth.js';
 import { resetPassword } from '../services/auth.js';
 
@@ -57,7 +56,7 @@ export const loginUserController = async (req, res, next) => {
     });
 
     // Встановлюю sessionId у cookie
-    res.cookie('sessionId', session._id, {
+    res.cookie('sessionId', session._id.toString(), {
       httpOnly: true,
       maxAge: ONE_DAY, // 1 день
     });
@@ -139,27 +138,6 @@ const setupSession = (res, session) => {
   });
 };
 
-//Альтернативне оновлення сесії через сервіс refreshUsersSession, встановлює cookie через setupSession().
-export const refreshUserSessionController = async (req, res, next) => {
-  try {
-    const session = await refreshUsersSession({
-      sessionId: req.cookies.sessionId,
-      refreshToken: req.cookies.refreshToken,
-    });
-
-    setupSession(res, session);
-
-    res.status(200).json({
-      status: 'success',
-      message: 'Successfully refreshed a session!',
-      data: {
-        accessToken: session.accessToken,
-      },
-    });
-  } catch (error) {
-    next(error);
-  }
-};
 //Відправка email для скидання пароля.
 export const requestResetEmailController = async (req, res, next) => {
   try {
@@ -179,13 +157,7 @@ export const requestResetEmailController = async (req, res, next) => {
 export const resetPasswordController = async (req, res, next) => {
   try {
     const { token, password } = req.body;
-    // Перевіряю, чи переданий пароль
-    if (!password || typeof password !== 'string') {
-      return res.status(400).json({
-        status: 'error',
-        message: 'Password is required and must be a string',
-      });
-    }
+
     await resetPassword(token, password);
     res.status(200).json({
       status: 200,
@@ -193,7 +165,16 @@ export const resetPasswordController = async (req, res, next) => {
       data: {},
     });
   } catch (error) {
-    console.error('Reset password error:', error);
+
+    // Обробка JWT помилок
+      if (
+      error.name === 'TokenExpiredError' || //якщо токен прострочений
+      error.name === 'JsonWebTokenError'    //або токен недійсний (пошкоджений, неправильний формат, підроблений тощо
+    )
+    {
+      return next(createHttpError(401, 'Token is expired or invalid.'));
+    }
+
     next(error);
   }
 };
