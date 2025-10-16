@@ -1,0 +1,42 @@
+type: object
+required:
+  - name
+  - phoneNumber
+  - contactType
+  - userId
+properties:
+  name:
+    type: string
+    description: Name of the contact
+  phoneNumber:
+    type: string
+    description: Phone number of the contact
+  email:
+    type: string
+    description: Email of the contact (optional)
+  isFavourite:
+    type: boolean
+    description: Marks if contact is a favorite
+    default: false
+  contactType:
+    type: string
+    description: Type of contact
+    enum:
+      - work
+      - home
+      - personal
+    default: personal
+  userId:
+    type: string
+    description: ID of the user who owns the contact
+  photo:
+    type: string
+    description: URL of the contact's photo (optional)
+  createdAt:
+    type: string
+    format: date-time
+    description: Creation timestamp
+  updatedAt:
+    type: string
+    format: date-time
+    description: Last update timestamp

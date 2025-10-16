@@ -1,27 +1,18 @@
-/*Контролери для аутентифікації користувачів.
+
+
+/* Контролери для аутентифікації користувачів:
    Реєстрація, логін, оновлення сесії, вихід, скидання пароля */
 
-import Joi from 'joi';
+import { registerUser, loginUser, refreshSession, logoutUser, requestResetToken, resetPassword } from '../services/auth.js';
+import { registerUserSchema } from '../validation/auth.js';
+import { ONE_DAY } from '../constants/index.js';
 
-import { registerUser, loginUser } from '../services/auth.js';//
-import { registerUserSchema } from '../validation/auth.js';//
-import { ONE_DAY } from '../constants/index.js';//
-import { refreshSession } from '../services/auth.js';//
-import { logoutUser } from '../services/auth.js';//
-import { requestResetToken } from '../services/auth.js';
-import { resetPassword } from '../services/auth.js';
-
-
-/* Реєстрація користувача. Валідація через Joi, хешування пароля в сервісі, повертає нового користувача.*/
+/* Реєстрація користувача */
 export const registerUserController = async (req, res, next) => {
   try {
-    //  Валідація даних через Joi
-    const { value, error } = registerUserSchema.validate(req.body, {
-      abortEarly: false,
-    });
+    const { value, error } = registerUserSchema.validate(req.body, { abortEarly: false });
 
     if (error) {
-      // Якщо є помилки валідації, повертаю 400
       return res.status(400).json({
         status: 'error',
         message: 'Bad Request',
@@ -29,7 +20,6 @@ export const registerUserController = async (req, res, next) => {
       });
     }
 
-/*  Реєстрація користувача через сервіс.Сервіс сам хешує пароль і перевіряє унікальність email*/
     const newUser = await registerUser(value);
     res.status(201).json({
       status: 201,
@@ -41,49 +31,42 @@ export const registerUserController = async (req, res, next) => {
   }
 };
 
-//Логін користувача, створення сесії, встановлення refreshToken і sessionId у cookie, повертає accessToken
+/* Логін користувача */
 export const loginUserController = async (req, res, next) => {
   try {
-    const session = await loginUser(req.body); // повертає об'єкт сесії з токенами
+    const session = await loginUser(req.body);
 
-    // Встановлюю refreshToken  та sessionId у cookie
     res.cookie('refreshToken', session.refreshToken, {
       httpOnly: true,
-      maxAge: Math.max(
-        session.refreshTokenValidUntil.getTime() - Date.now(),
-        0,
-      ), //дату, до якої токен дійсний (refreshTokenValidUntil), віднімаю поточний час (Date.now()) і отримую залишок часу життя токена в мілісекундах.
+      maxAge: Math.max(session.refreshTokenValidUntil.getTime() - Date.now(), 0),
     });
 
-    // Встановлюю sessionId у cookie
     res.cookie('sessionId', session._id.toString(), {
       httpOnly: true,
-      maxAge: ONE_DAY, // 1 день
+      maxAge: ONE_DAY,
     });
 
-    // Відповідаю accessToken
     res.status(200).json({
       status: 'success',
       message: 'Successfully logged in an user!',
-      data: { accessToken: session.accessToken }, //Повертаю клієнту accessToken для авторизації запитів
+      data: { accessToken: session.accessToken },
     });
   } catch (error) {
     next(error);
   }
 };
 
-
-/*Оновлення сесії на основі refreshToken з cookie, повертає новий accessToken*/
+/* Оновлення сесії на основі refreshToken */
 export const refreshSessionController = async (req, res, next) => {
   try {
     const refreshToken = req.cookies.refreshToken;
-     if (!refreshToken) {
+    if (!refreshToken) {
       return res.status(401).json({
         status: 'error',
         message: 'Refresh token not found',
       });
     }
-    // Встановлюю новий refreshToken у cookie
+
     const newSession = await refreshSession(refreshToken);
 
     res.cookie('refreshToken', newSession.refreshToken, {
@@ -95,28 +78,26 @@ export const refreshSessionController = async (req, res, next) => {
       httpOnly: true,
       maxAge: ONE_DAY,
     });
+
     res.status(200).json({
       status: 'success',
       message: 'Successfully refreshed a session!',
-      data: {
-        accessToken: newSession.accessToken,
-      },
+      data: { accessToken: newSession.accessToken },
     });
   } catch (error) {
     next(error);
   }
 };
 
-// Видалення сесії з БД, очищення cookie (sessionId і refreshToken
+/* Видалення сесії */
 export const logoutUserController = async (req, res, next) => {
   try {
-    const { sessionId,refreshToken } = req.cookies;// отримуємо кукі
+    const { sessionId, refreshToken } = req.cookies;
 
-     if (sessionId || refreshToken) {
-      await logoutUser( sessionId,refreshToken); //видаляю сесію з БД
+    if (sessionId || refreshToken) {
+      await logoutUser(sessionId, refreshToken);
     }
 
-    // Очищую cookies на клієнті
     res.clearCookie('sessionId');
     res.clearCookie('refreshToken');
 
@@ -126,22 +107,10 @@ export const logoutUserController = async (req, res, next) => {
   }
 };
 
-//оновлюю сессію
-const setupSession = (res, session) => {
-  res.cookie('refreshToken', session.refreshToken, {
-    httpOnly: true,
-    maxAge: ONE_DAY,
-  });
-  res.cookie('sessionId', session._id, {
-    httpOnly: true,
-    maxAge: ONE_DAY,
-  });
-};
-
-//Відправка email для скидання пароля.
+/* Відправка email для скидання пароля */
 export const requestResetEmailController = async (req, res, next) => {
   try {
-    const token = await requestResetToken(req.body.email); //зберігаю результат
+    await requestResetToken(req.body.email);
 
     res.status(200).json({
       status: 200,
@@ -153,7 +122,7 @@ export const requestResetEmailController = async (req, res, next) => {
   }
 };
 
-//Зміна пароля за токеном. Перевірка валідності пароля.
+/* Зміна пароля за токеном */
 export const resetPasswordController = async (req, res, next) => {
   try {
     const { token, password } = req.body;
@@ -165,21 +134,13 @@ export const resetPasswordController = async (req, res, next) => {
       data: {},
     });
   } catch (error) {
-
     // Обробка JWT помилок
-      if (
-      error.name === 'TokenExpiredError' || //якщо токен прострочений
-      error.name === 'JsonWebTokenError'    //або токен недійсний (пошкоджений, неправильний формат, підроблений тощо
-    )
-    {
-      return next(createHttpError(401, 'Token is expired or invalid.'));
+    if (error.name === 'TokenExpiredError' || error.name === 'JsonWebTokenError') {
+      return res.status(401).json({
+        status: 'error',
+        message: 'Token is expired or invalid.',
+      });
     }
-
     next(error);
   }
 };
-
-
-
-
-

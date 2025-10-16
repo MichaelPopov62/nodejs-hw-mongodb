@@ -1,0 +1,29 @@
+#  DELET swagger/patch /contacts/{id}/delete.yaml
+# Видалити контакт по ID
+# метод DELETE swagger/paths/contacts/{id}/delete.yaml
+# Видалення контакту по ID
+
+tags:
+  - Contacts
+summary: Delete contact by ID
+operationId: deleteContactById
+description: Delete a single contact by its ID. Returns 204 No Content on success.
+security:
+  - bearerAuth: []
+parameters:
+  - in: path
+    name: id
+    required: true
+    description: ID of the contact to delete
+    schema:
+      type: string
+
+responses:
+  '204':
+    description: Contact deleted successfully (No Content)
+  '400':
+    $ref: '../../../components/responses/400.yaml'
+  '404':
+    $ref: '../../../components/responses/404.yaml'
+  '500':
+    $ref: '../../../components/responses/500.yaml'

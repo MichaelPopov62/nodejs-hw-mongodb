@@ -18,7 +18,7 @@ import mongoose from 'mongoose';
 import createHttpError from 'http-errors';
 import { Contact } from '../models/contact.js';
 import { calculatePaginationData } from '../utils/calculatePaginationData.js';
-import { SORT_ORDER } from '../constants/index.js';
+// import { SORT_ORDER } from '../constants/index.js';
 
 // Отримую всі контакти з пагінацією, фільтром і сортуванням
 export async function getAllContacts({

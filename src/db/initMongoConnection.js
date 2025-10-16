@@ -2,7 +2,7 @@
 
 import mongoose from 'mongoose';
 
-const URI = process.env.DB_URI;
+// const URI = process.env.DB_URI;
 
 export const initMongoConnection = async (URI) => {
   try {

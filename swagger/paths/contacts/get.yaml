@@ -1,0 +1,58 @@
+
+  summary: Get a list of contacts
+  tags:
+    - Contacts
+  operationId: getContacts
+  description: Retrieve all contacts of the authenticated user with optional pagination, sorting, and filtering.
+  security:
+    - bearerAuth: []
+  parameters:
+    - in: query
+      name: page
+      schema:
+        type: integer
+        default: 1
+      description: Page number for pagination
+    - in: query
+      name: perPage
+      schema:
+        type: integer
+        default: 10
+      description: Number of items per page
+    - in: query
+      name: sortOrder
+      schema:
+        type: string
+        enum: [asc, desc]
+      description: Sort order (ascending or descending)
+    - in: query
+      name: filter
+      schema:
+        type: string
+      description: Filter contacts by name, email, or phone
+  responses:
+    '200':
+      description: Successfully retrieved contacts
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - status
+              - message
+              - data
+            properties:
+              status:
+                type: integer
+                example: 200
+              message:
+                type: string
+                example: Successfully found contacts!
+              data:
+                type: array
+                items:
+                  $ref: '../../components/schemas/ContactSchema.yaml'
+    '400':
+      $ref: '../../components/responses/400.yaml'
+    '500':
+      $ref: '../../components/responses/500.yaml'

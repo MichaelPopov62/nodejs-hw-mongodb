@@ -1,0 +1,41 @@
+
+
+openapi: 3.1.0
+info:
+  version: 1.0.0
+  title: "ContactBase"
+  description: "A simple and convenient application for creating, storing and managing a contact database. Suitable for business, teams and personal use."
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+
+servers:
+  - url: http://127.0.0.1:9090
+  - url: https://example.com/api/v1 #задеплоідний
+
+tags:
+  - name: Contacts
+    description: Operations about users.
+  - name: Auth
+    description: Auth operations.
+
+paths:
+  /contacts:
+    get:
+      $ref: "../swagger/paths/contacts/get.yaml"
+    post:
+      $ref: "../swagger/paths/contacts/post.yaml"
+  /contacts/{id}:
+    get:
+      $ref: "../swagger/paths/contacts/{id}/get.yaml"
+    patch:
+      $ref: "../swagger/paths/contacts/{id}/patch.yaml"
+    delete:
+      $ref: "../swagger/paths/contacts/{id}/delete.yaml"
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

@@ -1,0 +1,73 @@
+# # метод PATCH swagger/paths/contacts/{id}/patch.yaml
+# # Оновити контакт по ID
+
+tags:
+  - Contacts
+summary: Update contact by ID
+operationId: updateContactById
+description: Partially update an existing contact by its ID.
+security:
+  - bearerAuth: []
+parameters:
+  - in: path
+    name: id
+    required: true
+    description: ID of the contact to update
+    schema:
+      type: string
+
+requestBody:
+  required: false
+  content:
+    multipart/form-data:
+      schema:
+        type: object
+        properties:
+          name:
+            type: string
+            example: John Doe
+          phoneNumber:
+            type: string
+            example: +380123456789
+          email:
+            type: string
+            format: email
+            example: john@example.com
+          contactType:
+            type: string
+            enum: [home, work, personal]
+            example: home
+          isFavourite:
+            type: boolean
+            example: true
+          photo:
+            type: string
+            format: binary
+            description: Upload a photo
+
+responses:
+  '200':
+    description: Contact updated successfully
+    content:
+      application/json:
+        schema:
+          type: object
+          required:
+            - status
+            - message
+            - data
+          properties:
+            status:
+              type: integer
+              example: 200
+            message:
+              type: string
+              example: Successfully updated contact!
+            data:
+              $ref: '../../../components/schemas/ContactSchema.yaml'
+  '400':
+    $ref: '../../../components/responses/400.yaml'
+  '404':
+    $ref: '../../../components/responses/404.yaml'
+  '500':
+    $ref: '../../../components/responses/500.yaml'

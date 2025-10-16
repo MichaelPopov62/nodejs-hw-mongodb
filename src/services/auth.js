@@ -20,10 +20,9 @@ import { SessionCollection } from '../models/session.js';
 import createHttpError from 'http-errors';
 import { randomBytes } from 'crypto';
 import {
-  SIXTY_MINUTES,
   FIFTEEN_MINUTES,
   THIRTY_DAYS,
-  ONE_DAY,
+  // ONE_DAY,
 } from '../constants/index.js';
 import { sendMail } from '../utils/sendMail.js';
 import dotenv from 'dotenv';
@@ -135,18 +134,18 @@ export const logoutUser = async (sessionId, refreshToken) => {
   };
 
 
-//оновлення сессіі
-const createSession = () => {
-  const accessToken = randomBytes(30).toString('base64');
-  const refreshToken = randomBytes(30).toString('base64');
+// //оновлення сессіі
+// const createSession = () => {
+//   const accessToken = randomBytes(30).toString('base64');
+//   const refreshToken = randomBytes(30).toString('base64');
 
-  return {
-    accessToken,
-    refreshToken,
-    accessTokenValidUntil: new Date(Date.now() + FIFTEEN_MINUTES),
-    refreshTokenValidUntil: new Date(Date.now() + ONE_DAY),
-  };
-};
+//   return {
+//     accessToken,
+//     refreshToken,
+//     accessTokenValidUntil: new Date(Date.now() + FIFTEEN_MINUTES),
+//     refreshTokenValidUntil: new Date(Date.now() + ONE_DAY),
+//   };
+// };
 
 
 
@@ -157,7 +156,7 @@ export const requestResetToken = async (email) => {
 
   if (!user) {
     throw createHttpError(404, 'User not found');
-    return;
+    // return;
   }
 
   const token = jwt.sign(
@@ -183,7 +182,7 @@ export const requestResetToken = async (email) => {
       from: process.env.SMTP_FROM,
     });
 
-  } catch (err) {
+  } catch {
     throw createHttpError(
       500,
       'Failed to send the email, please try again later.',

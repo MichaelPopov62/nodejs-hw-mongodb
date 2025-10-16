@@ -1,0 +1,67 @@
+# метод POST swagger/paths/contacts/post.yaml
+# Створити новий контакт
+
+tags:
+  - Contacts
+summary: Create a new contact
+operationId: createContact
+description: Create a new contact for the authenticated user. Photo upload is optional.
+security:
+  - bearerAuth: []
+requestBody:
+  required: true
+  content:
+    multipart/form-data:
+      schema:
+        type: object
+        required:
+          - name
+          - phoneNumber
+          - contactType
+        properties:
+          name:
+            type: string
+            example: John Doe
+          phoneNumber:
+            type: string
+            example: +380123456789
+          email:
+            type: string
+            format: email
+            example: john@example.com
+          contactType:
+            type: string
+            enum: [work, home, personal]
+            example: home
+          isFavourite:
+            type: boolean
+            example: true
+          photo:
+            type: string
+            format: binary
+            description: Upload a photo (optional)
+
+responses:
+  '201':
+    description: Contact created successfully
+    content:
+      application/json:
+        schema:
+          type: object
+          required:
+            - status
+            - message
+            - data
+          properties:
+            status:
+              type: integer
+              example: 201
+            message:
+              type: string
+              example: Successfully created a contact!
+            data:
+              $ref: '../../components/schemas/ContactSchema.yaml'
+  '400':
+    $ref: '../../components/responses/400.yaml'
+  '500':
+    $ref: '../../components/responses/500.yaml'

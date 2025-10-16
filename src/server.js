@@ -1,6 +1,8 @@
 /* Основний модуль Express-сервера.
    Відповідає за налаштування сервера, middleware, роутів та підключення до MongoDB * В ньому буде знаходитись логіка роботи express-серверу.Передаю данні дляпідключення*/
 
+import fs from 'fs';
+import path from 'path';
 import dotenv from 'dotenv';
 import express from 'express';
 import cors from 'cors';
@@ -10,6 +12,11 @@ import router from './routes/index.js';
 import { errorHandler } from './middlewares/errorHandler.js';
 import { notFoundHandler } from './middlewares/notFoundHandler.js';
 import cookieParser from 'cookie-parser';
+import swaggerUI from 'swagger-ui-express';
+
+const SWAGGER_DOCUMENT = JSON.parse(
+  fs.readFileSync(path.join('docs', 'swagger.json')),
+);
 
 // Завантажую змінні оточення
 dotenv.config();
@@ -26,9 +33,13 @@ export function setupServer() {
 
   //Налаштування cors
   app.use(cors()); // Налаштування дозвол для всіх використовуючі метод use
+  app.use('/api-docs', swaggerUI.serve, swaggerUI.setup(SWAGGER_DOCUMENT));
 
   //Налаштування pino використовуючі метод use
   app.use(pinoHttp()); //функція яка імпортується з бібліотеки pino-http
+
+
+
 
   app.use(router); // Тепер запити виглядають так:
   // GET /contacts       → contactsRouter

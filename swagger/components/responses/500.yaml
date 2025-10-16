@@ -1,0 +1,18 @@
+description: Internal Server Error
+content:
+  application/json:
+    schema:
+      type: object
+      required:
+        - status
+        - data
+      properties:
+        status:
+          type: integer
+          example: 500
+        data:
+          type: object
+          properties:
+            message:
+              type: string
+              example: Something went wrong

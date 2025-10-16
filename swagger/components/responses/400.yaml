@@ -1,0 +1,21 @@
+description: Bad Request
+content:
+  application/json:
+    schema:
+      type: object
+      required:
+        - status
+        - message
+        - errors
+      properties:
+        status:
+          type: integer
+          example: 400
+        message:
+          type: string
+          example: Bad Request
+        errors:
+          type: array
+          items:
+            type: string
+            example: "Invalid contactId format"
