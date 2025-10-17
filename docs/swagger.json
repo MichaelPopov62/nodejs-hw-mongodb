@@ -11,10 +11,8 @@
   },
   "servers": [
     {
-      "url": "http://127.0.0.1:9090"
-    },
-    {
-      "url": "https://example.com/api/v1"
+      "url": "https://nodejs-hw-mongodb-5-fu2v.onrender.com",
+      "description": "Production server"
     }
   ],
   "tags": [
@@ -35,7 +33,7 @@
           "Contacts"
         ],
         "operationId": "getContacts",
-        "description": "Retrieve all contacts of the authenticated user with optional pagination, sorting, and filtering.",
+        "description": "Retrieve all contacts of the authenticated user with optional pagination, filtering and sorting.Sorting is always applied by the \"name\" field on the backend. Only sortOrder can be modified.\n",
         "security": [
           {
             "bearerAuth": []
@@ -68,17 +66,31 @@
               "enum": [
                 "asc",
                 "desc"
-              ]
+              ],
+              "default": "asc"
             },
-            "description": "Sort order (ascending or descending)"
+            "description": "Sort order.Available values: asc (A → Z), desc (Z → A).Sorting is always done by the \"name\" field on the server.\n"
           },
           {
             "in": "query",
-            "name": "filter",
+            "name": "contactType",
             "schema": {
-              "type": "string"
+              "type": "string",
+              "enum": [
+                "home",
+                "work",
+                "personal"
+              ]
             },
-            "description": "Filter contacts by name, email, or phone"
+            "description": "Filter contacts by type"
+          },
+          {
+            "in": "query",
+            "name": "isFavourite",
+            "schema": {
+              "type": "boolean"
+            },
+            "description": "Filter favourite contacts (true/false)"
           }
         ],
         "responses": {

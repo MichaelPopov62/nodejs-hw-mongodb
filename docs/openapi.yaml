@@ -10,8 +10,9 @@ info:
     url: http://www.apache.org/licenses/LICENSE-2.0.html
 
 servers:
-  - url: http://127.0.0.1:9090
-  - url: https://example.com/api/v1 #задеплоідний
+  # - url: http://127.0.0.1:9090
+  - url: https://nodejs-hw-mongodb-5-fu2v.onrender.com
+    description: Production server
 
 tags:
   - name: Contacts

@@ -3,7 +3,8 @@
   tags:
     - Contacts
   operationId: getContacts
-  description: Retrieve all contacts of the authenticated user with optional pagination, sorting, and filtering.
+  description: >
+    Retrieve all contacts of the authenticated user with optional pagination, filtering and sorting.Sorting is always applied by the "name" field on the backend. Only sortOrder can be modified.
   security:
     - bearerAuth: []
   parameters:
@@ -24,12 +25,20 @@
       schema:
         type: string
         enum: [asc, desc]
-      description: Sort order (ascending or descending)
+        default: asc
+      description: >
+        Sort order.Available values: asc (A → Z), desc (Z → A).Sorting is always done by the "name" field on the server.
     - in: query
-      name: filter
+      name: contactType
       schema:
         type: string
-      description: Filter contacts by name, email, or phone
+        enum: [home, work, personal]
+      description: Filter contacts by type
+    - in: query
+      name: isFavourite
+      schema:
+        type: boolean
+      description: Filter favourite contacts (true/false)
   responses:
     '200':
       description: Successfully retrieved contacts
